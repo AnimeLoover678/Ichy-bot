@@ -113,6 +113,21 @@ class DbManager:
         await self.__db.users[bot_id].update_one({'_id': user_id}, {'$set': {key: doc_bin}}, upsert=True)
         self.__conn.close
 
+    async def set_metadata(self, id, metadata): 
+        await self.__db.meta.update_one({'_id': int(id)}, {'$set': {'metadata': metadata}})           
+
+    async def get_metadata(self, id):
+        user = await self.__db.meta.find_one({'_id': int(id)})
+        return user.get('metadata', None)
+    
+    async def set_metadata_enabled(self, id, status):
+        await self.__db.metapref.update_one({'_id': int(id)}, {'$set': {'metadata_enabled': status}})
+
+    async def get_metadata_enabled(self, id):
+        user = await self.__db.metapref.find_one({'_id': int(id)})
+        return user.get('metadata_enabled', False) 
+        
+
     async def get_pm_uids(self):
         if self.__err:
             return
