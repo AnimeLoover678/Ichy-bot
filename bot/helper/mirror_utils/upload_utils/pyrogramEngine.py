@@ -18,6 +18,7 @@ from bot.helper.telegram_helper.message_utils import sendCustomMsg, sendMultiMes
 from bot.helper.ext_utils.fs_utils import clean_unwanted, is_archive, get_base_name
 from bot.helper.ext_utils.bot_utils import get_readable_file_size, sync_to_async, is_telegram_link, is_url, download_image_url
 from bot.helper.ext_utils.leech_utils import get_media_info, get_document_type, take_ss, get_ss, get_mediainfo_link, format_filename, get_audio_thumb
+from bot.helper.ext_utils.db_handler import DbManager
 
 LOGGER = getLogger(__name__)
 getLogger("pyrogram").setLevel(ERROR)
@@ -344,7 +345,15 @@ class TgUploader:
         if self.__thumb is not None and not await aiopath.exists(self.__thumb):
             self.__thumb = None
         thumb = self.__thumb
+        if not os.path.isdir("Metadata"):
+            os.mkdir("Metadata")        
         self.__is_corrupted = False
+        user_id = self.__sent_msg.id
+        metadat = await DbManager.get_metadata(user_id)
+        metadata_path = None
+        metadata_path = f"Metadata/{cap_mono}"
+        
+        
         try:
             is_video, is_audio, is_image = await get_document_type(self.__up_path)
 
@@ -365,9 +374,14 @@ class TgUploader:
                 if self.__is_cancelled:
                     return
                 buttons = await self.__buttons(self.__up_path, is_video)
+                cmd = f'ffmpeg -y -i {shlex.quote(self.__up_path)} {metadat} {shlex.quote(self.metadata_path)}'                  
+                process = await asyncio.create_subprocess_shell(                    
+                    cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
                 nrml_media = await self.__client.send_document(chat_id=self.__sent_msg.chat.id,
                                                                        reply_to_message_id=self.__sent_msg.id,
-                                                                       document=self.__up_path,
+                                                                       document=self.metadata_path,
                                                                        thumb=thumb,
                                                                        caption=cap_mono,
                                                                        force_document=True,
@@ -409,9 +423,14 @@ class TgUploader:
                 if self.__is_cancelled:
                     return
                 buttons = await self.__buttons(self.__up_path, is_video)
+                cmd = f'ffmpeg -y -i {shlex.quote(self.__up_path)} {metadat} {shlex.quote(self.metadata_path)}'                  
+                process = await asyncio.create_subprocess_shell(                    
+                    cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
                 nrml_media = await self.__client.send_video(chat_id=self.__sent_msg.chat.id,
                                                                     reply_to_message_id=self.__sent_msg.id,
-                                                                    video=self.__up_path,
+                                                                    video=self.metadata_path,
                                                                     caption=cap_mono,
                                                                     duration=duration,
                                                                     width=width,
