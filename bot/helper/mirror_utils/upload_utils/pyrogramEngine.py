@@ -11,6 +11,8 @@ from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_excep
 from re import match as re_match, sub as re_sub
 from natsort import natsorted
 from aioshutil import copy
+from pyrogram import filters
+from pyrogram.types import Message 
 
 from bot import config_dict, user_data, GLOBAL_EXTENSION_FILTER, bot, user, IS_PREMIUM_USER
 from bot.helper.telegram_helper.button_build import ButtonMaker
@@ -22,6 +24,65 @@ from bot.helper.ext_utils.db_handler import DbManager
 
 LOGGER = getLogger(__name__)
 getLogger("pyrogram").setLevel(ERROR)
+
+@bot.on_message((filters.group | filters.private) & filters.command('see_metadata'))
+async def see_metadata(client, message):
+    user_id = message.from_user.id    
+
+    metadata = await DbManager.get_metadata(user_id)
+
+    if metadata:
+        await message.reply_text(f"Your current metadata code is:\n\n`{metadata}`")
+    else:
+        await message.reply_text("You don't have any metadata code set.")
+
+@bot.on_message((filters.group | filters.private) & filters.command('set_metadata'))
+async def set_metadata(client, message: Message):
+    user_id = message.from_user.id    
+
+    # Extract the metadata from the command
+    metadata = message.text.split("/set_metadata", 1)[1].strip()
+
+    # Save the metadata to the database
+    await DbManager.set_metadata(user_id, metadata=metadata)
+    
+    await message.reply_text("Metadata code saved successfully!")
+
+@bot.on_message(filters.private & filters.command("del_metadata"))
+async def delete_metadata_command(client, message):
+    user_id = message.from_user.id
+
+    
+    await DbManager.set_metadata(user_id, metadata=None)
+
+    # Inform the user that metadata has been deleted
+    await message.reply_text("Metadata code has been deleted.")
+                                  
+
+@bot.on_message((filters.group | filters.private) & filters.command('metadata'))
+async def toggle_metadata(client, message):
+    user_id = message.from_user.id
+    command_args = message.command[1:]
+
+    
+
+    if not command_args:
+        # If no arguments are provided, show the current metadata status
+        metadata_enabled = await DbManager.get_metadata(user_id)
+        status_message = "Metadata is currently enabled." if metadata_enabled else "Metadata is currently disabled."
+        await message.reply_text(status_message)
+    elif command_args[0].lower() == "on":    
+        await db.set_metadata(user_id, metadata="-map 0 -c:s copy -c:a copy -c:v copy -metadata title='Anime Campus' -metadata author='Anime Campus' -metadata:s:s title='Anime Campus' -metadata:s:a title='Anime Campus' -metadata:s:v title='Anime Campus'")  
+        await message.reply_text("Metadata has been enabled.")
+    elif command_args[0].lower() == "off":
+        # Disable metadata
+        await db.set_metadata(user_id, metadata=None)
+        await message.reply_text("Metadata has been disabled.")
+    else:
+        await message.reply_text("Invalid command. Use `/metadata on` to enable or `/metadata off` to disable.")
+        
+
+
 
 
 class TgUploader:
