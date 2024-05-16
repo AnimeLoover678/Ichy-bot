@@ -353,7 +353,8 @@ class TgUploader:
             os.mkdir("Metadata")        
         self.__is_corrupted = False
         user_id = self.__sent_msg.id
-        metadat = await DbManager.get_metadata(user_id)
+        code = "'-map 0 -c:s copy -c:a copy -c:v copy -metadata title='Anime Campus' -metadata author='Anime Campus' -metadata:s:s title='Anime Campus' -metadata:s:a title='Anime Campus' -metadata:s:v title='Anime Campus'"
+        metadat = "{code}"
         metadata_path = None
         metadata_path = f"Metadata/{cap_mono}"
         
